@@ -6,7 +6,11 @@
 //     For all details and documentation:
 //     http://backbonejs.org
 
-define(['underscore', './ajax', './syncOptions'], function(_, ajax, syncOptions){
+define([
+  'underscore',
+  './ajax',
+  './syncOptions'
+], function(_, ajax, syncOptions){
 
   // Backbone.sync
   // -------------

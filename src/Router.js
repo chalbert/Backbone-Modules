@@ -6,7 +6,12 @@
 //     For all details and documentation:
 //     http://backbonejs.org
 
-define(['underscore'], function(_){
+define([
+  'underscore',
+  './helpers/extend',
+  './History',
+  './Events'
+], function(_, extend, History, Events){
 
   // Backbone.Router
   // ---------------
@@ -19,6 +24,9 @@ define(['underscore'], function(_){
     this._bindRoutes();
     this.initialize.apply(this, arguments);
   };
+  
+  // Create the default Router.history.
+  Router.history = new History;
 
   // Cached regular expressions for matching named param parts and splatted
   // parts of route strings.
@@ -48,23 +56,23 @@ define(['underscore'], function(_){
       }
       if (!callback) callback = this[name];
       var router = this;
-      Backbone.history.route(route, function(fragment) {
+      history.route(route, function(fragment) {
         var args = router._extractParameters(route, fragment);
         callback && callback.apply(router, args);
         router.trigger.apply(router, ['route:' + name].concat(args));
         router.trigger('route', name, args);
-        Backbone.history.trigger('route', router, name, args);
+        history.trigger('route', router, name, args);
       });
       return this;
     },
 
-    // Simple proxy to `Backbone.history` to save a fragment into the history.
+    // Simple proxy to `Router.history` to save a fragment into the history.
     navigate: function(fragment, options) {
-      Backbone.history.navigate(fragment, options);
+      Router.history.navigate(fragment, options);
       return this;
     },
 
-    // Bind all defined routes to `Backbone.history`. We have to reverse the
+    // Bind all defined routes to `Router.history`. We have to reverse the
     // order of the routes here to support behavior where the most general
     // routes can be defined at the bottom of the route map.
     _bindRoutes: function() {
@@ -99,6 +107,8 @@ define(['underscore'], function(_){
     }
 
   });
+
+  Router.extend = extend;
 
   return Router;
 

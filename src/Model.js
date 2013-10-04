@@ -6,7 +6,14 @@
 //     For all details and documentation:
 //     http://backbonejs.org
 
-define(['underscore'], function(_){
+define([
+  'underscore',
+  './helpers/extend',
+  './Events'
+], function(_, extend, Events){
+
+  var array = [];
+  var slice = array.slice;
 
   // Backbone.Model
   // --------------
@@ -356,5 +363,9 @@ define(['underscore'], function(_){
       return _[method].apply(_, args);
     };
   });
+
+  Model.extend = extend;
+
+  return Model;
 
 });
