@@ -56,12 +56,12 @@ define([
       }
       if (!callback) callback = this[name];
       var router = this;
-      history.route(route, function(fragment) {
+      Router.history.route(route, function(fragment) {
         var args = router._extractParameters(route, fragment);
         callback && callback.apply(router, args);
         router.trigger.apply(router, ['route:' + name].concat(args));
         router.trigger('route', name, args);
-        history.trigger('route', router, name, args);
+        Router.history.trigger('route', router, name, args);
       });
       return this;
     },

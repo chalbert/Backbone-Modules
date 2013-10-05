@@ -4,709 +4,864 @@
   var location = null;
   var lastRoute = null;
   var lastArgs = [];
+  var history;
+  var MyRouter;
 
   function onRoute(router, route, args) {
     lastRoute = route;
     lastArgs = args;
   }
 
-  var Location = function(href) {
-    this.replace(href);
-  };
+  var Location;
+  var ExternalObject;
 
-  _.extend(Location.prototype, {
-
-    replace: function(href) {
-      _.extend(this, _.pick($('<a></a>', {href: href})[0],
-        'href',
-        'hash',
-        'host',
-        'search',
-        'fragment',
-        'pathname',
-        'protocol'
-      ));
-      // In IE, anchor.pathname does not contain a leading slash though
-      // window.location.pathname does.
-      if (!/^\//.test(this.pathname)) this.pathname = '/' + this.pathname;
-    },
-
-    toString: function() {
-      return this.href;
-    }
-
-  });
-
-  module("Backbone.Router", {
+  module("Router", {
 
     setup: function() {
-      location = new Location('http://example.com');
-      Backbone.history = _.extend(new Backbone.History, {location: location});
-      router = new Router({testing: 101});
-      Backbone.history.interval = 9;
-      Backbone.history.start({pushState: false});
-      lastRoute = null;
-      lastArgs = [];
-      Backbone.history.on('route', onRoute);
+      define('setup', ['underscore', 'jquery', 'Router', 'History'], function(_, $, Router, History){
+        Location = function(href) {
+          this.replace(href);
+        };
+
+        _.extend(Location.prototype, {
+
+          replace: function(href) {
+            _.extend(this, _.pick($('<a></a>', {href: href})[0],
+              'href',
+              'hash',
+              'host',
+              'search',
+              'fragment',
+              'pathname',
+              'protocol'
+            ));
+            // In IE, anchor.pathname does not contain a leading slash though
+            // window.location.pathname does.
+            if (!/^\//.test(this.pathname)) this.pathname = '/' + this.pathname;
+          },
+
+          toString: function() {
+            return this.href;
+          }
+
+        });
+
+        ExternalObject = {
+          value: 'unset',
+
+          routingFunction: function(value) {
+            this.value = value;
+          }
+        };
+        _.bindAll(ExternalObject);
+
+        history = Router.history;
+
+        MyRouter = Router.extend({
+
+          count: 0,
+
+          routes: {
+            "noCallback":                 "noCallback",
+            "counter":                    "counter",
+            "search/:query":              "search",
+            "search/:query/p:page":       "search",
+            "contacts":                   "contacts",
+            "contacts/new":               "newContact",
+            "contacts/:id":               "loadContact",
+            "route-event/:arg":           "routeEvent",
+            "optional(/:item)":           "optionalItem",
+            "named/optional/(y:z)":       "namedOptional",
+            "splat/*args/end":            "splat",
+            ":repo/compare/*from...*to":  "github",
+            "decode/:named/*splat":       "decode",
+            "*first/complex-*part/*rest": "complex",
+            ":entity?*args":              "query",
+            "function/:value":            ExternalObject.routingFunction,
+            "*anything":                  "anything"
+          },
+
+          initialize : function(options) {
+            this.asyncTesting = options.asyncTesting;
+            this.route('implicit', 'implicit');
+          },
+
+          counter: function() {
+            this.count++;
+          },
+
+          implicit: function() {
+            this.count++;
+          },
+
+          search : function(query, page) {
+            this.query = query;
+            this.page = page;
+          },
+
+          contacts: function(){
+            this.contact = 'index';
+          },
+
+          newContact: function(){
+            this.contact = 'new';
+          },
+
+          loadContact: function(){
+            this.contact = 'load';
+          },
+
+          optionalItem: function(arg){
+            this.arg = arg != void 0 ? arg : null;
+          },
+
+          splat: function(args) {
+            this.args = args;
+          },
+
+          github: function(repo, from, to) {
+            this.repo = repo;
+            this.from = from;
+            this.to = to;
+          },
+
+          complex: function(first, part, rest) {
+            this.first = first;
+            this.part = part;
+            this.rest = rest;
+          },
+
+          query: function(entity, args) {
+            this.entity    = entity;
+            this.queryArgs = args;
+          },
+
+          anything: function(whatever) {
+            this.anything = whatever;
+          },
+
+          namedOptional: function(z) {
+            this.z = z;
+          },
+
+          decode: function(named, path) {
+            this.named = named;
+            this.path = path;
+          },
+
+          routeEvent: function(arg) {
+          }
+
+        });
+
+        location = new Location('http://example.com');
+        Router.history = _.extend(new History, {location: location});
+        router = new MyRouter({asyncTesting: 101});
+        Router.history.interval = 9;
+        Router.history.start({pushState: false});
+        lastRoute = null;
+        lastArgs = [];
+        Router.history.on('route', onRoute);
+
+      });
     },
 
     teardown: function() {
-      Backbone.history.stop();
-      Backbone.history.off('route', onRoute);
+      require.undef('setup');
+      history.stop();
+      history.off('route', onRoute);
     }
 
   });
 
-  var ExternalObject = {
-    value: 'unset',
-
-    routingFunction: function(value) {
-      this.value = value;
-    }
-  };
-  _.bindAll(ExternalObject);
-
-  var Router = Backbone.Router.extend({
-
-    count: 0,
-
-    routes: {
-      "noCallback":                 "noCallback",
-      "counter":                    "counter",
-      "search/:query":              "search",
-      "search/:query/p:page":       "search",
-      "contacts":                   "contacts",
-      "contacts/new":               "newContact",
-      "contacts/:id":               "loadContact",
-      "route-event/:arg":           "routeEvent",
-      "optional(/:item)":           "optionalItem",
-      "named/optional/(y:z)":       "namedOptional",
-      "splat/*args/end":            "splat",
-      ":repo/compare/*from...*to":  "github",
-      "decode/:named/*splat":       "decode",
-      "*first/complex-*part/*rest": "complex",
-      ":entity?*args":              "query",
-      "function/:value":            ExternalObject.routingFunction,
-      "*anything":                  "anything"
-    },
-
-    initialize : function(options) {
-      this.testing = options.testing;
-      this.route('implicit', 'implicit');
-    },
-
-    counter: function() {
-      this.count++;
-    },
-
-    implicit: function() {
-      this.count++;
-    },
-
-    search : function(query, page) {
-      this.query = query;
-      this.page = page;
-    },
-
-    contacts: function(){
-      this.contact = 'index';
-    },
-
-    newContact: function(){
-      this.contact = 'new';
-    },
-
-    loadContact: function(){
-      this.contact = 'load';
-    },
-
-    optionalItem: function(arg){
-      this.arg = arg != void 0 ? arg : null;
-    },
-
-    splat: function(args) {
-      this.args = args;
-    },
-
-    github: function(repo, from, to) {
-      this.repo = repo;
-      this.from = from;
-      this.to = to;
-    },
-
-    complex: function(first, part, rest) {
-      this.first = first;
-      this.part = part;
-      this.rest = rest;
-    },
-
-    query: function(entity, args) {
-      this.entity    = entity;
-      this.queryArgs = args;
-    },
-
-    anything: function(whatever) {
-      this.anything = whatever;
-    },
-
-    namedOptional: function(z) {
-      this.z = z;
-    },
-
-    decode: function(named, path) {
-      this.named = named;
-      this.path = path;
-    },
-
-    routeEvent: function(arg) {
-    }
-
-  });
-
-  test("initialize", 1, function() {
-    equal(router.testing, 101);
-  });
-
-  test("routes (simple)", 4, function() {
-    location.replace('http://example.com#search/news');
-    Backbone.history.checkUrl();
-    equal(router.query, 'news');
-    equal(router.page, void 0);
-    equal(lastRoute, 'search');
-    equal(lastArgs[0], 'news');
-  });
-
-  test("routes (simple, but unicode)", 4, function() {
-    location.replace('http://example.com#search/тест');
-    Backbone.history.checkUrl();
-    equal(router.query, "тест");
-    equal(router.page, void 0);
-    equal(lastRoute, 'search');
-    equal(lastArgs[0], "тест");
-  });
-
-  test("routes (two part)", 2, function() {
-    location.replace('http://example.com#search/nyc/p10');
-    Backbone.history.checkUrl();
-    equal(router.query, 'nyc');
-    equal(router.page, '10');
-  });
-
-  test("routes via navigate", 2, function() {
-    Backbone.history.navigate('search/manhattan/p20', {trigger: true});
-    equal(router.query, 'manhattan');
-    equal(router.page, '20');
-  });
-
-  test("routes via navigate for backwards-compatibility", 2, function() {
-    Backbone.history.navigate('search/manhattan/p20', true);
-    equal(router.query, 'manhattan');
-    equal(router.page, '20');
-  });
-
-  test("reports matched route via nagivate", 1, function() {
-    ok(Backbone.history.navigate('search/manhattan/p20', true));
-  });
-
-  test("route precedence via navigate", 6, function(){
-    // check both 0.9.x and backwards-compatibility options
-    _.each([ { trigger: true }, true ], function( options ){
-      Backbone.history.navigate('contacts', options);
-      equal(router.contact, 'index');
-      Backbone.history.navigate('contacts/new', options);
-      equal(router.contact, 'new');
-      Backbone.history.navigate('contacts/foo', options);
-      equal(router.contact, 'load');
+  asyncTest("initialize", 1, function() {
+    require(['underscore', 'Router', 'History', 'setup'], function (_, Router, History) {
+      equal(router.asyncTesting, 101);
+      start();
     });
   });
 
-  test("loadUrl is not called for identical routes.", 0, function() {
-    Backbone.history.loadUrl = function(){ ok(false); };
-    location.replace('http://example.com#route');
-    Backbone.history.navigate('route');
-    Backbone.history.navigate('/route');
-    Backbone.history.navigate('/route');
-  });
-
-  test("use implicit callback if none provided", 1, function() {
-    router.count = 0;
-    router.navigate('implicit', {trigger: true});
-    equal(router.count, 1);
-  });
-
-  test("routes via navigate with {replace: true}", 1, function() {
-    location.replace('http://example.com#start_here');
-    Backbone.history.checkUrl();
-    location.replace = function(href) {
-      strictEqual(href, new Location('http://example.com#end_here').href);
-    };
-    Backbone.history.navigate('end_here', {replace: true});
-  });
-
-  test("routes (splats)", 1, function() {
-    location.replace('http://example.com#splat/long-list/of/splatted_99args/end');
-    Backbone.history.checkUrl();
-    equal(router.args, 'long-list/of/splatted_99args');
-  });
-
-  test("routes (github)", 3, function() {
-    location.replace('http://example.com#backbone/compare/1.0...braddunbar:with/slash');
-    Backbone.history.checkUrl();
-    equal(router.repo, 'backbone');
-    equal(router.from, '1.0');
-    equal(router.to, 'braddunbar:with/slash');
-  });
-
-  test("routes (optional)", 2, function() {
-    location.replace('http://example.com#optional');
-    Backbone.history.checkUrl();
-    ok(!router.arg);
-    location.replace('http://example.com#optional/thing');
-    Backbone.history.checkUrl();
-    equal(router.arg, 'thing');
-  });
-
-  test("routes (complex)", 3, function() {
-    location.replace('http://example.com#one/two/three/complex-part/four/five/six/seven');
-    Backbone.history.checkUrl();
-    equal(router.first, 'one/two/three');
-    equal(router.part, 'part');
-    equal(router.rest, 'four/five/six/seven');
-  });
-
-  test("routes (query)", 5, function() {
-    location.replace('http://example.com#mandel?a=b&c=d');
-    Backbone.history.checkUrl();
-    equal(router.entity, 'mandel');
-    equal(router.queryArgs, 'a=b&c=d');
-    equal(lastRoute, 'query');
-    equal(lastArgs[0], 'mandel');
-    equal(lastArgs[1], 'a=b&c=d');
-  });
-
-  test("routes (anything)", 1, function() {
-    location.replace('http://example.com#doesnt-match-a-route');
-    Backbone.history.checkUrl();
-    equal(router.anything, 'doesnt-match-a-route');
-  });
-
-  test("routes (function)", 3, function() {
-    router.on('route', function(name) {
-      ok(name === '');
+  asyncTest("routes (simple)", 4, function() {
+    require(['underscore', 'Router', 'History', 'setup'], function (_, Router, History) {
+      location.replace('http://example.com#search/news');
+      Router.history.checkUrl();
+      equal(router.query, 'news');
+      equal(router.page, void 0);
+      equal(lastRoute, 'search');
+      equal(lastArgs[0], 'news');
+      start();
     });
-    equal(ExternalObject.value, 'unset');
-    location.replace('http://example.com#function/set');
-    Backbone.history.checkUrl();
-    equal(ExternalObject.value, 'set');
   });
 
-  test("Decode named parameters, not splats.", 2, function() {
-    location.replace('http://example.com#decode/a%2Fb/c%2Fd/e');
-    Backbone.history.checkUrl();
-    strictEqual(router.named, 'a/b');
-    strictEqual(router.path, 'c/d/e');
+  asyncTest("routes (simple, but unicode)", 4, function() {
+    require(['underscore', 'Router', 'History', 'setup'], function (_, Router, History) {
+      location.replace('http://example.com#search/тест');
+      Router.history.checkUrl();
+      equal(router.query, "тест");
+      equal(router.page, void 0);
+      equal(lastRoute, 'search');
+      equal(lastArgs[0], "тест");
+      start();
+    });
   });
 
-  test("fires event when router doesn't have callback on it", 1, function() {
-    router.on("route:noCallback", function(){ ok(true); });
-    location.replace('http://example.com#noCallback');
-    Backbone.history.checkUrl();
+  asyncTest("routes (two part)", 2, function() {
+    require(['underscore', 'Router', 'History', 'setup'], function (_, Router, History) {
+      location.replace('http://example.com#search/nyc/p10');
+      Router.history.checkUrl();
+      equal(router.query, 'nyc');
+      equal(router.page, '10');
+      start();
+    });
   });
 
-  test("#933, #908 - leading slash", 2, function() {
-    location.replace('http://example.com/root/foo');
-
-    Backbone.history.stop();
-    Backbone.history = _.extend(new Backbone.History, {location: location});
-    Backbone.history.start({root: '/root', hashChange: false, silent: true});
-    strictEqual(Backbone.history.getFragment(), 'foo');
-
-    Backbone.history.stop();
-    Backbone.history = _.extend(new Backbone.History, {location: location});
-    Backbone.history.start({root: '/root/', hashChange: false, silent: true});
-    strictEqual(Backbone.history.getFragment(), 'foo');
+  asyncTest("routes via navigate", 2, function() {
+    require(['underscore', 'Router', 'History', 'setup'], function (_, Router, History) {
+      Router.history.navigate('search/manhattan/p20', {trigger: true});
+      equal(router.query, 'manhattan');
+      equal(router.page, '20');
+      start();
+    });
   });
 
-  test("#1003 - History is started before navigate is called", 1, function() {
-    Backbone.history.stop();
-    Backbone.history.navigate = function(){ ok(Backbone.History.started); };
-    Backbone.history.start();
-    // If this is not an old IE navigate will not be called.
-    if (!Backbone.history.iframe) ok(true);
+  asyncTest("routes via navigate for backwards-compatibility", 2, function() {
+    require(['underscore', 'Router', 'History', 'setup'], function (_, Router, History) {
+      Router.history.navigate('search/manhattan/p20', true);
+      equal(router.query, 'manhattan');
+      equal(router.page, '20');
+      start();
+    });
   });
 
-  test("#967 - Route callback gets passed encoded values.", 3, function() {
-    var route = 'has%2Fslash/complex-has%23hash/has%20space';
-    Backbone.history.navigate(route, {trigger: true});
-    strictEqual(router.first, 'has/slash');
-    strictEqual(router.part, 'has#hash');
-    strictEqual(router.rest, 'has space');
+  asyncTest("reports matched route via nagivate", 1, function() {
+    require(['underscore', 'Router', 'History', 'setup'], function (_, Router, History) {
+      ok(Router.history.navigate('search/manhattan/p20', true));
+      start();
+    });
   });
 
-  test("correctly handles URLs with % (#868)", 3, function() {
-    location.replace('http://example.com#search/fat%3A1.5%25');
-    Backbone.history.checkUrl();
-    location.replace('http://example.com#search/fat');
-    Backbone.history.checkUrl();
-    equal(router.query, 'fat');
-    equal(router.page, void 0);
-    equal(lastRoute, 'search');
+  asyncTest("route precedence via navigate", 6, function(){
+    require(['underscore', 'Router', 'History', 'setup'], function (_, Router, History) {
+      // check both 0.9.x and backwards-compatibility options
+      _.each([ { trigger: true }, true ], function( options ){
+        Router.history.navigate('contacts', options);
+        equal(router.contact, 'index');
+        Router.history.navigate('contacts/new', options);
+        equal(router.contact, 'new');
+        Router.history.navigate('contacts/foo', options);
+        equal(router.contact, 'load');
+      });
+      start();
+    });
   });
 
-  test("#1185 - Use pathname when hashChange is not wanted.", 1, function() {
-    Backbone.history.stop();
-    location.replace('http://example.com/path/name#hash');
-    Backbone.history = _.extend(new Backbone.History, {location: location});
-    Backbone.history.start({hashChange: false});
-    var fragment = Backbone.history.getFragment();
-    strictEqual(fragment, location.pathname.replace(/^\//, ''));
+  asyncTest("loadUrl is not called for identical routes.", 0, function() {
+    require(['underscore', 'Router', 'History', 'setup'], function (_, Router, History) {
+      Router.history.loadUrl = function(){ ok(false); };
+      location.replace('http://example.com#route');
+      Router.history.navigate('route');
+      Router.history.navigate('/route');
+      Router.history.navigate('/route');
+      start();
+    });
   });
 
-  test("#1206 - Strip leading slash before location.assign.", 1, function() {
-    Backbone.history.stop();
-    location.replace('http://example.com/root/');
-    Backbone.history = _.extend(new Backbone.History, {location: location});
-    Backbone.history.start({hashChange: false, root: '/root/'});
-    location.assign = function(pathname) {
-      strictEqual(pathname, '/root/fragment');
-    };
-    Backbone.history.navigate('/fragment');
+  asyncTest("use implicit callback if none provided", 1, function() {
+    require(['underscore', 'Router', 'History', 'setup'], function (_, Router, History) {
+      router.count = 0;
+      router.navigate('implicit', {trigger: true});
+      equal(router.count, 1);
+      start();
+    });
   });
 
-  test("#1387 - Root fragment without trailing slash.", 1, function() {
-    Backbone.history.stop();
-    location.replace('http://example.com/root');
-    Backbone.history = _.extend(new Backbone.History, {location: location});
-    Backbone.history.start({hashChange: false, root: '/root/', silent: true});
-    strictEqual(Backbone.history.getFragment(), '');
+  asyncTest("routes via navigate with {replace: true}", 1, function() {
+    require(['underscore', 'Router', 'History', 'setup'], function (_, Router, History) {
+      location.replace('http://example.com#start_here');
+      Router.history.checkUrl();
+      location.replace = function(href) {
+        strictEqual(href, new Location('http://example.com#end_here').href);
+      };
+      Router.history.navigate('end_here', {replace: true});
+      start();
+    });
   });
 
-  test("#1366 - History does not prepend root to fragment.", 2, function() {
-    Backbone.history.stop();
-    location.replace('http://example.com/root/');
-    Backbone.history = _.extend(new Backbone.History, {
-      location: location,
-      history: {
-        pushState: function(state, title, url) {
-          strictEqual(url, '/root/x');
+  asyncTest("routes (splats)", 1, function() {
+    require(['underscore', 'Router', 'History', 'setup'], function (_, Router, History) {
+      location.replace('http://example.com#splat/long-list/of/splatted_99args/end');
+      Router.history.checkUrl();
+      equal(router.args, 'long-list/of/splatted_99args');
+      start();
+    });
+  });
+
+  asyncTest("routes (github)", 3, function() {
+    require(['underscore', 'Router', 'History', 'setup'], function (_, Router, History) {
+      location.replace('http://example.com#backbone/compare/1.0...braddunbar:with/slash');
+      Router.history.checkUrl();
+      equal(router.repo, 'backbone');
+      equal(router.from, '1.0');
+      equal(router.to, 'braddunbar:with/slash');
+      start();
+    });
+  });
+
+  asyncTest("routes (optional)", 2, function() {
+    require(['underscore', 'Router', 'History', 'setup'], function (_, Router, History) {
+      location.replace('http://example.com#optional');
+      Router.history.checkUrl();
+      ok(!router.arg);
+      location.replace('http://example.com#optional/thing');
+      Router.history.checkUrl();
+      equal(router.arg, 'thing');
+      start();
+    });
+  });
+
+  asyncTest("routes (complex)", 3, function() {
+    require(['underscore', 'Router', 'History', 'setup'], function (_, Router, History) {
+      location.replace('http://example.com#one/two/three/complex-part/four/five/six/seven');
+      Router.history.checkUrl();
+      equal(router.first, 'one/two/three');
+      equal(router.part, 'part');
+      equal(router.rest, 'four/five/six/seven');
+      start();
+    });
+  });
+
+  asyncTest("routes (query)", 5, function() {
+    require(['underscore', 'Router', 'History', 'setup'], function (_, Router, History) {
+      location.replace('http://example.com#mandel?a=b&c=d');
+      Router.history.checkUrl();
+      equal(router.entity, 'mandel');
+      equal(router.queryArgs, 'a=b&c=d');
+      equal(lastRoute, 'query');
+      equal(lastArgs[0], 'mandel');
+      equal(lastArgs[1], 'a=b&c=d');
+      start();
+    });
+  });
+
+  asyncTest("routes (anything)", 1, function() {
+    require(['underscore', 'Router', 'History', 'setup'], function (_, Router, History) {
+      location.replace('http://example.com#doesnt-match-a-route');
+      Router.history.checkUrl();
+      equal(router.anything, 'doesnt-match-a-route');
+      start();
+    });
+  });
+
+  asyncTest("routes (function)", 3, function() {
+    require(['underscore', 'Router', 'History', 'setup'], function (_, Router, History) {
+      router.on('route', function(name) {
+        ok(name === '');
+      });
+      equal(ExternalObject.value, 'unset');
+      location.replace('http://example.com#function/set');
+      Router.history.checkUrl();
+      equal(ExternalObject.value, 'set');
+      start();
+    });
+  });
+
+  asyncTest("Decode named parameters, not splats.", 2, function() {
+    require(['underscore', 'Router', 'History', 'setup'], function (_, Router, History) {
+      location.replace('http://example.com#decode/a%2Fb/c%2Fd/e');
+      Router.history.checkUrl();
+      strictEqual(router.named, 'a/b');
+      strictEqual(router.path, 'c/d/e');
+      start();
+    });
+  });
+
+  asyncTest("fires event when router doesn't have callback on it", 1, function() {
+    require(['underscore', 'Router', 'History', 'setup'], function (_, Router, History) {
+      router.on("route:noCallback", function(){ ok(true); });
+      location.replace('http://example.com#noCallback');
+      Router.history.checkUrl();
+      start();
+    });
+  });
+
+  asyncTest("#933, #908 - leading slash", 2, function() {
+    require(['underscore', 'Router', 'History', 'setup'], function (_, Router, History) {
+      location.replace('http://example.com/root/foo');
+
+      Router.history.stop();
+      Router.history = _.extend(new History, {location: location});
+      Router.history.start({root: '/root', hashChange: false, silent: true});
+      strictEqual(Router.history.getFragment(), 'foo');
+
+      Router.history.stop();
+      Router.history = _.extend(new History, {location: location});
+      Router.history.start({root: '/root/', hashChange: false, silent: true});
+      strictEqual(Router.history.getFragment(), 'foo');
+      start();
+    });
+  });
+
+  asyncTest("#1003 - History is started before navigate is called", 1, function() {
+    require(['underscore', 'Router', 'History', 'setup'], function (_, Router, History) {
+      Router.history.stop();
+      Router.history.navigate = function(){ ok(History.started); };
+      Router.history.start();
+      // If this is not an old IE navigate will not be called.
+      if (!Router.history.iframe) ok(true);
+      start();
+    });
+  });
+
+  asyncTest("#967 - Route callback gets passed encoded values.", 3, function() {
+    require(['underscore', 'Router', 'History', 'setup'], function (_, Router, History) {
+      var route = 'has%2Fslash/complex-has%23hash/has%20space';
+      Router.history.navigate(route, {trigger: true});
+      strictEqual(router.first, 'has/slash');
+      strictEqual(router.part, 'has#hash');
+      strictEqual(router.rest, 'has space');
+      start();
+    });
+  });
+
+  asyncTest("correctly handles URLs with % (#868)", 3, function() {
+    require(['underscore', 'Router', 'History', 'setup'], function (_, Router, History) {
+      location.replace('http://example.com#search/fat%3A1.5%25');
+      Router.history.checkUrl();
+      location.replace('http://example.com#search/fat');
+      Router.history.checkUrl();
+      equal(router.query, 'fat');
+      equal(router.page, void 0);
+      equal(lastRoute, 'search');
+      start();
+    });
+  });
+
+  asyncTest("#1185 - Use pathname when hashChange is not wanted.", 1, function() {
+    require(['underscore', 'Router', 'History', 'setup'], function (_, Router, History) {
+      Router.history.stop();
+      location.replace('http://example.com/path/name#hash');
+      Router.history = _.extend(new History, {location: location});
+      Router.history.start({hashChange: false});
+      var fragment = Router.history.getFragment();
+      strictEqual(fragment, location.pathname.replace(/^\//, ''));
+      start();
+    });
+  });
+
+  asyncTest("#1206 - Strip leading slash before location.assign.", 1, function() {
+    require(['underscore', 'Router', 'History', 'setup'], function (_, Router, History) {
+      Router.history.stop();
+      location.replace('http://example.com/root/');
+      Router.history = _.extend(new History, {location: location});
+      Router.history.start({hashChange: false, root: '/root/'});
+      location.assign = function(pathname) {
+        strictEqual(pathname, '/root/fragment');
+      };
+      Router.history.navigate('/fragment');
+      start();
+    });
+  });
+
+  asyncTest("#1387 - Root fragment without trailing slash.", 1, function() {
+    require(['underscore', 'Router', 'History', 'setup'], function (_, Router, History) {
+      Router.history.stop();
+      location.replace('http://example.com/root');
+      Router.history = _.extend(new History, {location: location});
+      Router.history.start({hashChange: false, root: '/root/', silent: true});
+      strictEqual(Router.history.getFragment(), '');
+      start();
+    });
+  });
+
+  asyncTest("#1366 - History does not prepend root to fragment.", 2, function() {
+    require(['underscore', 'Router', 'History', 'setup'], function (_, Router, History) {
+      Router.history.stop();
+      location.replace('http://example.com/root/');
+      Router.history = _.extend(new History, {
+        location: location,
+        history: {
+          pushState: function(state, title, url) {
+            strictEqual(url, '/root/x');
+          }
         }
-      }
+      });
+      Router.history.start({
+        root: '/root/',
+        pushState: true,
+        hashChange: false
+      });
+      Router.history.navigate('x');
+      strictEqual(Router.history.fragment, 'x');
+      start();
     });
-    Backbone.history.start({
-      root: '/root/',
-      pushState: true,
-      hashChange: false
-    });
-    Backbone.history.navigate('x');
-    strictEqual(Backbone.history.fragment, 'x');
   });
 
-  test("Normalize root.", 1, function() {
-    Backbone.history.stop();
-    location.replace('http://example.com/root');
-    Backbone.history = _.extend(new Backbone.History, {
-      location: location,
-      history: {
-        pushState: function(state, title, url) {
-          strictEqual(url, '/root/fragment');
+  asyncTest("Normalize root.", 1, function() {
+    require(['underscore', 'Router', 'History', 'setup'], function (_, Router, History) {
+      Router.history.stop();
+      location.replace('http://example.com/root');
+      Router.history = _.extend(new History, {
+        location: location,
+        history: {
+          pushState: function(state, title, url) {
+            strictEqual(url, '/root/fragment');
+          }
         }
-      }
+      });
+      Router.history.start({
+        pushState: true,
+        root: '/root',
+        hashChange: false
+      });
+      Router.history.navigate('fragment');
+      start();
     });
-    Backbone.history.start({
-      pushState: true,
-      root: '/root',
-      hashChange: false
-    });
-    Backbone.history.navigate('fragment');
   });
 
-  test("Normalize root.", 1, function() {
-    Backbone.history.stop();
-    location.replace('http://example.com/root#fragment');
-    Backbone.history = _.extend(new Backbone.History, {
-      location: location,
-      history: {
-        pushState: function(state, title, url) {},
-        replaceState: function(state, title, url) {
-          strictEqual(url, '/root/fragment');
+  asyncTest("Normalize root.", 1, function() {
+    require(['underscore', 'Router', 'History', 'setup'], function (_, Router, History) {
+      Router.history.stop();
+      location.replace('http://example.com/root#fragment');
+      Router.history = _.extend(new History, {
+        location: location,
+        history: {
+          pushState: function(state, title, url) {},
+          replaceState: function(state, title, url) {
+            strictEqual(url, '/root/fragment');
+          }
         }
-      }
-    });
-    Backbone.history.start({
-      pushState: true,
-      root: '/root'
-    });
-  });
-
-  test("Normalize root.", 1, function() {
-    Backbone.history.stop();
-    location.replace('http://example.com/root');
-    Backbone.history = _.extend(new Backbone.History, {location: location});
-    Backbone.history.loadUrl = function() { ok(true); };
-    Backbone.history.start({
-      pushState: true,
-      root: '/root'
+      });
+      Router.history.start({
+        pushState: true,
+        root: '/root'
+      });
+      start();
     });
   });
 
-  test("Normalize root - leading slash.", 1, function() {
-    Backbone.history.stop();
-    location.replace('http://example.com/root');
-    Backbone.history = _.extend(new Backbone.History, {
-      location: location,
-      history: {
-        pushState: function(){},
-        replaceState: function(){}
-      }
+  asyncTest("Normalize root.", 1, function() {
+    require(['underscore', 'Router', 'History', 'setup'], function (_, Router, History) {
+      Router.history.stop();
+      location.replace('http://example.com/root');
+      Router.history = _.extend(new History, {location: location});
+      Router.history.loadUrl = function() { ok(true); };
+      Router.history.start({
+        pushState: true,
+        root: '/root'
+      });
+      start();
     });
-    Backbone.history.start({root: 'root'});
-    strictEqual(Backbone.history.root, '/root/');
   });
 
-  test("Transition from hashChange to pushState.", 1, function() {
-    Backbone.history.stop();
-    location.replace('http://example.com/root#x/y');
-    Backbone.history = _.extend(new Backbone.History, {
-      location: location,
-      history: {
-        pushState: function(){},
-        replaceState: function(state, title, url){
-          strictEqual(url, '/root/x/y');
+  asyncTest("Normalize root - leading slash.", 1, function() {
+    require(['underscore', 'Router', 'History', 'setup'], function (_, Router, History) {
+      Router.history.stop();
+      location.replace('http://example.com/root');
+      Router.history = _.extend(new History, {
+        location: location,
+        history: {
+          pushState: function(){},
+          replaceState: function(){}
         }
-      }
-    });
-    Backbone.history.start({
-      root: 'root',
-      pushState: true
+      });
+      Router.history.start({root: 'root'});
+      strictEqual(Router.history.root, '/root/');
+      start();
     });
   });
 
-  test("#1619: Router: Normalize empty root", 1, function() {
-    Backbone.history.stop();
-    location.replace('http://example.com/');
-    Backbone.history = _.extend(new Backbone.History, {
-      location: location,
-      history: {
-        pushState: function(){},
-        replaceState: function(){}
-      }
-    });
-    Backbone.history.start({root: ''});
-    strictEqual(Backbone.history.root, '/');
-  });
-
-  test("#1619: Router: nagivate with empty root", 1, function() {
-    Backbone.history.stop();
-    location.replace('http://example.com/');
-    Backbone.history = _.extend(new Backbone.History, {
-      location: location,
-      history: {
-        pushState: function(state, title, url) {
-          strictEqual(url, '/fragment');
+  asyncTest("Transition from hashChange to pushState.", 1, function() {
+    require(['underscore', 'Router', 'History', 'setup'], function (_, Router, History) {
+      Router.history.stop();
+      location.replace('http://example.com/root#x/y');
+      Router.history = _.extend(new History, {
+        location: location,
+        history: {
+          pushState: function(){},
+          replaceState: function(state, title, url){
+            strictEqual(url, '/root/x/y');
+          }
         }
-      }
-    });
-    Backbone.history.start({
-      pushState: true,
-      root: '',
-      hashChange: false
-    });
-    Backbone.history.navigate('fragment');
-  });
-
-  test("Transition from pushState to hashChange.", 1, function() {
-    Backbone.history.stop();
-    location.replace('http://example.com/root/x/y?a=b');
-    location.replace = function(url) {
-      strictEqual(url, '/root/?a=b#x/y');
-    };
-    Backbone.history = _.extend(new Backbone.History, {
-      location: location,
-      history: {
-        pushState: null,
-        replaceState: null
-      }
-    });
-    Backbone.history.start({
-      root: 'root',
-      pushState: true
+      });
+      Router.history.start({
+        root: 'root',
+        pushState: true
+      });
+      start();
     });
   });
 
-  test("#1695 - hashChange to pushState with search.", 1, function() {
-    Backbone.history.stop();
-    location.replace('http://example.com/root?a=b#x/y');
-    Backbone.history = _.extend(new Backbone.History, {
-      location: location,
-      history: {
-        pushState: function(){},
-        replaceState: function(state, title, url){
-          strictEqual(url, '/root/x/y?a=b');
+  asyncTest("#1619: Router: Normalize empty root", 1, function() {
+    require(['underscore', 'Router', 'History', 'setup'], function (_, Router, History) {
+      Router.history.stop();
+      location.replace('http://example.com/');
+      Router.history = _.extend(new History, {
+        location: location,
+        history: {
+          pushState: function(){},
+          replaceState: function(){}
         }
-      }
-    });
-    Backbone.history.start({
-      root: 'root',
-      pushState: true
-    });
-  });
-
-  test("#1746 - Router allows empty route.", 1, function() {
-    var Router = Backbone.Router.extend({
-      routes: {'': 'empty'},
-      empty: function(){},
-      route: function(route){
-        strictEqual(route, '');
-      }
-    });
-    new Router;
-  });
-
-  test("#1794 - Trailing space in fragments.", 1, function() {
-    var history = new Backbone.History;
-    strictEqual(history.getFragment('fragment   '), 'fragment');
-  });
-
-  test("#1820 - Leading slash and trailing space.", 1, function() {
-    var history = new Backbone.History;
-    strictEqual(history.getFragment('/fragment '), 'fragment');
-  });
-
-  test("#1980 - Optional parameters.", 2, function() {
-    location.replace('http://example.com#named/optional/y');
-    Backbone.history.checkUrl();
-    strictEqual(router.z, undefined);
-    location.replace('http://example.com#named/optional/y123');
-    Backbone.history.checkUrl();
-    strictEqual(router.z, '123');
-  });
-
-  test("#2062 - Trigger 'route' event on router instance.", 2, function() {
-    router.on('route', function(name, args) {
-      strictEqual(name, 'routeEvent');
-      deepEqual(args, ['x']);
-    });
-    location.replace('http://example.com#route-event/x');
-    Backbone.history.checkUrl();
-  });
-
-  test("#2255 - Extend routes by making routes a function.", 1, function() {
-    var RouterBase = Backbone.Router.extend({
-      routes: function() {
-        return {
-          home:  "root",
-          index: "index.html"
-        };
-      }
-    });
-
-    var RouterExtended = RouterBase.extend({
-      routes: function() {
-        var _super = RouterExtended.__super__.routes;
-        return _.extend(_super(),
-          { show:   "show",
-            search: "search" });
-      }
-    });
-
-    var router = new RouterExtended();
-    deepEqual({home: "root", index: "index.html", show: "show", search: "search"}, router.routes);
-  });
-
-  test("#2538 - hashChange to pushState only if both requested.", 0, function() {
-    Backbone.history.stop();
-    location.replace('http://example.com/root?a=b#x/y');
-    Backbone.history = _.extend(new Backbone.History, {
-      location: location,
-      history: {
-        pushState: function(){},
-        replaceState: function(){ ok(false); }
-      }
-    });
-    Backbone.history.start({
-      root: 'root',
-      pushState: true,
-      hashChange: false
+      });
+      Router.history.start({root: ''});
+      strictEqual(Router.history.root, '/');
+      start();
     });
   });
 
-  test('No hash fallback.', 0, function() {
-    Backbone.history.stop();
-    Backbone.history = _.extend(new Backbone.History, {
-      location: location,
-      history: {
-        pushState: function(){},
-        replaceState: function(){}
-      }
-    });
-
-    var Router = Backbone.Router.extend({
-      routes: {
-        hash: function() { ok(false); }
-      }
-    });
-    var router = new Router;
-
-    location.replace('http://example.com/');
-    Backbone.history.start({
-      pushState: true,
-      hashChange: false
-    });
-    location.replace('http://example.com/nomatch#hash');
-    Backbone.history.checkUrl();
-  });
-
-  test('#2656 - No trailing slash on root.', 1, function() {
-    Backbone.history.stop();
-    Backbone.history = _.extend(new Backbone.History, {
-      location: location,
-      history: {
-        pushState: function(state, title, url){
-          strictEqual(url, '/root');
+  asyncTest("#1619: Router: nagivate with empty root", 1, function() {
+    require(['underscore', 'Router', 'History', 'setup'], function (_, Router, History) {
+      Router.history.stop();
+      location.replace('http://example.com/');
+      Router.history = _.extend(new History, {
+        location: location,
+        history: {
+          pushState: function(state, title, url) {
+            strictEqual(url, '/fragment');
+          }
         }
-      }
+      });
+      Router.history.start({
+        pushState: true,
+        root: '',
+        hashChange: false
+      });
+      Router.history.navigate('fragment');
+      start();
     });
-    location.replace('http://example.com/root/path');
-    Backbone.history.start({pushState: true, root: 'root'});
-    Backbone.history.navigate('');
   });
 
-  test('#2656 - No trailing slash on root.', 1, function() {
-    Backbone.history.stop();
-    Backbone.history = _.extend(new Backbone.History, {
-      location: location,
-      history: {
-        pushState: function(state, title, url) {
-          strictEqual(url, '/');
+  asyncTest("Transition from pushState to hashChange.", 1, function() {
+    require(['underscore', 'Router', 'History', 'setup'], function (_, Router, History) {
+      Router.history.stop();
+      location.replace('http://example.com/root/x/y?a=b');
+      location.replace = function(url) {
+        strictEqual(url, '/root/?a=b#x/y');
+      };
+      Router.history = _.extend(new History, {
+        location: location,
+        history: {
+          pushState: null,
+          replaceState: null
         }
-      }
+      });
+      Router.history.start({
+        root: 'root',
+        pushState: true
+      });
+      start();
     });
-    location.replace('http://example.com/path');
-    Backbone.history.start({pushState: true});
-    Backbone.history.navigate('');
   });
 
-  test('#2765 - Fragment matching sans query/hash.', 2, function() {
-    Backbone.history.stop();
-    Backbone.history = _.extend(new Backbone.History, {
-      location: location,
-      history: {
-        pushState: function(state, title, url) {
-          strictEqual(url, '/path?query#hash');
+  asyncTest("#1695 - hashChange to pushState with search.", 1, function() {
+    require(['underscore', 'Router', 'History', 'setup'], function (_, Router, History) {
+      Router.history.stop();
+      location.replace('http://example.com/root?a=b#x/y');
+      Router.history = _.extend(new History, {
+        location: location,
+        history: {
+          pushState: function(){},
+          replaceState: function(state, title, url){
+            strictEqual(url, '/root/x/y?a=b');
+          }
         }
-      }
+      });
+      Router.history.start({
+        root: 'root',
+        pushState: true
+      });
+      start();
     });
+  });
 
-    var Router = Backbone.Router.extend({
-      routes: {
-        path: function() { ok(true); }
-      }
+  asyncTest("#1746 - Router allows empty route.", 1, function() {
+    require(['underscore', 'Router', 'History', 'setup'], function (_, Router, History) {
+      var Router = Router.extend({
+        routes: {'': 'empty'},
+        empty: function(){},
+        route: function(route){
+          strictEqual(route, '');
+        }
+      });
+      new Router;
+      start();
     });
-    var router = new Router;
+  });
 
-    location.replace('http://example.com/');
-    Backbone.history.start({pushState: true});
-    Backbone.history.navigate('path?query#hash', true);
+  asyncTest("#1794 - Trailing space in fragments.", 1, function() {
+    require(['underscore', 'Router', 'History', 'setup'], function (_, Router, History) {
+      var history = new History;
+      strictEqual(history.getFragment('fragment   '), 'fragment');
+      start();
+    });
+  });
+
+  asyncTest("#1820 - Leading slash and trailing space.", 1, function() {
+    require(['underscore', 'Router', 'History', 'setup'], function (_, Router, History) {
+      var history = new History;
+      strictEqual(history.getFragment('/fragment '), 'fragment');
+      start();
+    });
+  });
+
+  asyncTest("#1980 - Optional parameters.", 2, function() {
+    require(['underscore', 'Router', 'History', 'setup'], function (_, Router, History) {
+      location.replace('http://example.com#named/optional/y');
+      Router.history.checkUrl();
+      strictEqual(router.z, undefined);
+      location.replace('http://example.com#named/optional/y123');
+      Router.history.checkUrl();
+      strictEqual(router.z, '123');
+      start();
+    });
+  });
+
+  asyncTest("#2062 - Trigger 'route' event on router instance.", 2, function() {
+    require(['underscore', 'Router', 'History', 'setup'], function (_, Router, History) {
+      router.on('route', function(name, args) {
+        strictEqual(name, 'routeEvent');
+        deepEqual(args, ['x']);
+      });
+      location.replace('http://example.com#route-event/x');
+      Router.history.checkUrl();
+      start();
+    });
+  });
+
+  asyncTest("#2255 - Extend routes by making routes a function.", 1, function() {
+    require(['underscore', 'Router', 'History', 'setup'], function (_, Router, History) {
+      var RouterBase = Router.extend({
+        routes: function() {
+          return {
+            home:  "root",
+            index: "index.html"
+          };
+        }
+      });
+
+      var RouterExtended = RouterBase.extend({
+        routes: function() {
+          var _super = RouterExtended.__super__.routes;
+          return _.extend(_super(),
+            { show:   "show",
+              search: "search" });
+        }
+      });
+
+      var router = new RouterExtended();
+      deepEqual({home: "root", index: "index.html", show: "show", search: "search"}, router.routes);
+      start();
+    });
+  });
+
+  asyncTest("#2538 - hashChange to pushState only if both requested.", 0, function() {
+    require(['underscore', 'Router', 'History', 'setup'], function (_, Router, History) {
+      Router.history.stop();
+      location.replace('http://example.com/root?a=b#x/y');
+      Router.history = _.extend(new History, {
+        location: location,
+        history: {
+          pushState: function(){},
+          replaceState: function(){ ok(false); }
+        }
+      });
+      Router.history.start({
+        root: 'root',
+        pushState: true,
+        hashChange: false
+      });
+      start();
+    });
+  });
+
+  asyncTest('No hash fallback.', 0, function() {
+    require(['underscore', 'Router', 'History', 'setup'], function (_, Router, History) {
+      Router.history.stop();
+      Router.history = _.extend(new History, {
+        location: location,
+        history: {
+          pushState: function(){},
+          replaceState: function(){}
+        }
+      });
+
+      var Router = Router.extend({
+        routes: {
+          hash: function() { ok(false); }
+        }
+      });
+      var router = new Router;
+
+      location.replace('http://example.com/');
+      Router.history.start({
+        pushState: true,
+        hashChange: false
+      });
+      location.replace('http://example.com/nomatch#hash');
+      Router.history.checkUrl();
+      start();
+    });
+  });
+
+  asyncTest('#2656 - No trailing slash on root.', 1, function() {
+    require(['underscore', 'Router', 'History', 'setup'], function (_, Router, History) {
+      Router.history.stop();
+      Router.history = _.extend(new History, {
+        location: location,
+        history: {
+          pushState: function(state, title, url){
+            strictEqual(url, '/root');
+          }
+        }
+      });
+      location.replace('http://example.com/root/path');
+      Router.history.start({pushState: true, root: 'root'});
+      Router.history.navigate('');
+      start();
+    });
+  });
+
+  asyncTest('#2656 - No trailing slash on root.', 1, function() {
+    require(['underscore', 'Router', 'History', 'setup'], function (_, Router, History) {
+      Router.history.stop();
+      Router.history = _.extend(new History, {
+        location: location,
+        history: {
+          pushState: function(state, title, url) {
+            strictEqual(url, '/');
+          }
+        }
+      });
+      location.replace('http://example.com/path');
+      Router.history.start({pushState: true});
+      Router.history.navigate('');
+      start();
+    });
+  });
+
+  asyncTest('#2765 - Fragment matching sans query/hash.', 2, function() {
+    require(['underscore', 'Router', 'History', 'setup'], function (_, Router, History) {
+      Router.history.stop();
+      Router.history = _.extend(new History, {
+        location: location,
+        history: {
+          pushState: function(state, title, url) {
+            strictEqual(url, '/path?query#hash');
+          }
+        }
+      });
+
+      var Router = Router.extend({
+        routes: {
+          path: function() { ok(true); }
+        }
+      });
+      var router = new Router;
+
+      location.replace('http://example.com/');
+      Router.history.start({pushState: true});
+      Router.history.navigate('path?query#hash', true);
+      start();
+    });
   });
 
 })();
