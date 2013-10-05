@@ -8,9 +8,12 @@
 
 define([
   'underscore',
+  './Model',
+  './Events',
   './helpers/extend',
-  './Events'
-], function(_, extend, Events){
+  './helpers/sync',
+  './helpers/wrapError'
+], function(_, Model, Events, extend, sync, wrapError){
 
   var array = [];
   var slice = array.slice;
@@ -60,7 +63,7 @@ define([
 
     // Proxy `Backbone.sync` by default.
     sync: function() {
-      return Backbone.sync.apply(this, arguments);
+      return sync.apply(this, arguments);
     },
 
     // Add a model, or list of models to the set.

@@ -8,9 +8,11 @@
 
 define([
   'underscore',
+  './Events',
   './helpers/extend',
-  './Events'
-], function(_, extend, Events){
+  './helpers/sync',
+  './helpers/wrapError'
+], function(_, Events, extend, sync, wrapError){
 
   var array = [];
   var slice = array.slice;
@@ -25,7 +27,7 @@ define([
 
   // Create a new model with the specified attributes. A client id (`cid`)
   // is automatically generated and assigned for you.
-  var Model = Backbone.Model = function(attributes, options) {
+  var Model = function(attributes, options) {
     var defaults;
     var attrs = attributes || {};
     options || (options = {});
@@ -66,7 +68,7 @@ define([
     // Proxy `Backbone.sync` by default -- but override this if you need
     // custom syncing semantics for *this* particular model.
     sync: function() {
-      return Backbone.sync.apply(this, arguments);
+      return sync.apply(this, arguments);
     },
 
     // Get the value of an attribute.
