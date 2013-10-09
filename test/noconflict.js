@@ -1,3 +1,6 @@
+/*
+This test is irrelevant as require doesn't expose any global variable
+ */
 (function() {
 
   module("Backbone.noConflict");
