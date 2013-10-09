@@ -2,3 +2,11 @@ raw
 *.sw?
 .DS_Store
 node_modules
+.idea/*
+
+.idea/workspace.xml
+
+.idea/.name
+
+.idea/misc.xml
+                
