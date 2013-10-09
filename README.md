@@ -30,6 +30,35 @@ Backbone.emulateHTTP is now sync.emulateHTTP
 
 Backbone.emulateJSON is now sync.emulateJSON
 
+### Make things simple with paths
+
+    require.config({
+      paths: {
+        view: 'backbone/View',
+        model: 'backbone/Model',
+        collection: 'backbone/Collection',
+        router: 'backbone/Router',
+        events: 'backbone/Events'
+      }
+    });
+
+And now use
+
+    define(['view'], function(View){
+      var Widget = View.extend({
+            ...
+      });
+    })
+
+In addition to having dependencies that really reflects what your module use, you now have an abstraction of a view.
+If you want to change / extend what a view is, is now as simple as updating the path.
+
+    require.config({
+      paths: {
+        view: 'myCustomView'
+      }
+    });
+
 ### How to specify jQuery
 
 If you use jQuery and it is matches the "jquery" path, then you don't have to do anything.
