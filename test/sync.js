@@ -266,15 +266,15 @@
   asyncTest('Use Backbone.emulateHTTP as default.', 2, function() {
     var env = this;
 
-    require(['underscore', 'Model', 'helpers/syncOptions', 'setup'], function (_, Model, syncOptions) {
+      require(['underscore', 'Model', 'helpers/sync', 'setup'], function (_, Model, sync) {
       var model = new Model;
       model.url = '/asyncTest';
 
-      syncOptions.emulateHTTP = true;
+      sync.emulateHTTP = true;
       model.sync('create', model);
       strictEqual(env.ajaxSettings.emulateHTTP, true);
 
-      syncOptions.emulateHTTP = false;
+      sync.emulateHTTP = false;
       model.sync('create', model);
       strictEqual(env.ajaxSettings.emulateHTTP, false);
 
@@ -282,19 +282,19 @@
     });
   });
 
-  asyncTest('Use helpers/syncOptions as default.', 2, function() {
+  asyncTest('Use sync as default.', 2, function() {
     var env = this;
 
-    require(['underscore', 'Model', 'helpers/syncOptions', 'setup'], function (_, Model, syncOptions) {
+    require(['underscore', 'Model', 'helpers/sync', 'setup'], function (_, Model, sync) {
 
       var model = new Model;
       model.url = '/asyncTest';
 
-      syncOptions.emulateJSON = true;
+      sync.emulateJSON = true;
       model.sync('create', model);
       strictEqual(env.ajaxSettings.emulateJSON, true);
 
-      syncOptions.emulateJSON = false;
+      sync.emulateJSON = false;
       model.sync('create', model);
       strictEqual(env.ajaxSettings.emulateJSON, false);
 
@@ -305,8 +305,8 @@
   asyncTest("#1756 - Call user provided beforeSend function.", 4, function() {
     var env = this;
 
-    require(['underscore', 'Model', 'helpers/syncOptions', 'setup'], function (_, Model, syncOptions) {
-      syncOptions.emulateHTTP = true;
+    require(['underscore', 'Model', 'helpers/sync', 'setup'], function (_, Model, sync) {
+      sync.emulateHTTP = true;
 
       var model = new Model;
       model.url = '/asyncTest';

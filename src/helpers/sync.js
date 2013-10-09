@@ -8,9 +8,8 @@
 
 define([
   'underscore',
-  './ajax',
-  './syncOptions'
-], function(_, ajax, syncOptions){
+  './ajax'
+], function(_, ajax){
 
   // Backbone.sync
   // -------------
@@ -35,8 +34,8 @@ define([
 
     // Default options, unless specified.
     _.defaults(options || (options = {}), {
-      emulateHTTP: syncOptions.emulateHTTP,
-      emulateJSON: syncOptions.emulateJSON
+      emulateHTTP: sync.emulateHTTP,
+      emulateJSON: sync.emulateJSON
     });
 
     // Default JSON-request options.
@@ -90,6 +89,9 @@ define([
     model.trigger('request', model, xhr, options);
     return xhr;
   };
+
+  sync.emulateHTTP = false;
+  sync.emulateJSON = false;
 
   var noXhrPatch = typeof window !== 'undefined' && !!window.ActiveXObject && !(window.XMLHttpRequest && (new XMLHttpRequest).dispatchEvent);
 

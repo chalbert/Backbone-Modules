@@ -8,7 +8,7 @@
 
 define([
   'underscore',
-  './helpers/jquery',
+  'jquery',
   './helpers/extend',
   './Events'
 ], function(_, $, extend, Events){

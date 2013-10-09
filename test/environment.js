@@ -85,9 +85,8 @@ QUnit.testDone(function() {
   require.undef('View');
   require.undef('helpers/ajax');
   require.undef('helpers/extend');
-  require.undef('helpers/jquery');
+  require.undef('jquery');
   require.undef('helpers/sync');
-  require.undef('helpers/syncOptions');
   require.undef('helpers/urlError');
   require.undef('helpers/wrapError');
 
